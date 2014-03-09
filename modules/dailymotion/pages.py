@@ -89,6 +89,16 @@ class VideoPage(BasePage):
         if video is None:
             video = DailymotionVideo(self.group_dict['id'])
 
+        self.set_video_metadata(video)
+        self.set_video_url(video)
+
+        video.set_empty_fields(NotAvailable)
+
+        return video
+
+
+    def set_video_metadata(self, video):
+
         head = self.parser.select(self.document.getroot(), 'head', 1)
 
         video.title = unicode(self.parser.select(head, 'meta[property="og:title"]', 1).get("content")).strip()
@@ -123,6 +133,9 @@ class VideoPage(BasePage):
         except BrokenPageError:
             video.description = u''
 
+
+    def set_video_url(self, video):
+
         embed_page = self.browser.readurl('http://www.dailymotion.com/embed/video/%s' % video.id)
 
         m = re.search('var info = ({.*?}),[^{"]', embed_page)
@@ -139,20 +152,14 @@ class VideoPage(BasePage):
         else:
             raise BrokenPageError(u'Unable to extract video URL')
 
-        video.url = info[max_quality]
-
-        video.set_empty_fields(NotAvailable)
-
-        return video
+        video.url = unicode(info[max_quality])
 
 
-class KidsVideoPage(BasePage):
+class KidsVideoPage(VideoPage):
 
     CONTROLLER_PAGE = 'http://kids.dailymotion.com/controller/Page_Kids_KidsUserHome?%s'
 
-    def get_video(self, video=None):
-        if video is None:
-            video = DailymotionVideo(self.group_dict['id'])
+    def set_video_metadata(self, video):
 
         # The player html code with all the required information is loaded
         # after the main page using javascript and a special XmlHttpRequest
@@ -215,25 +222,3 @@ class KidsVideoPage(BasePage):
             video.author = u''
             video.thumbnail = None
             video.duration = NotAvailable
-
-        embed_page = self.browser.readurl('http://www.dailymotion.com/embed/video/%s' % video.id)
-
-        m = re.search('var info = ({.*?}),[^{"]', embed_page)
-        if not m:
-            raise BrokenPageError('Unable to find information about video')
-
-        info = json.loads(m.group(1))
-        for key in ['stream_h264_hd1080_url', 'stream_h264_hd_url',
-                    'stream_h264_hq_url', 'stream_h264_url',
-                    'stream_h264_ld_url']:
-            if info.get(key):  # key in info and info[key]:
-                max_quality = key
-                break
-        else:
-            raise BrokenPageError(u'Unable to extract video URL')
-
-        video.url = unicode(info[max_quality])
-
-        video.set_empty_fields(NotAvailable)
-
-        return video
