@@ -214,11 +214,6 @@ class KidsVideoPage(VideoPage):
             video.duration = datetime.timedelta(seconds=params['mediaDuration'])
 
         except:
-            # If anything goes wrong, we prefer to at least give empty values
-            # this will allow video download to work even if we don't have the
-            # metadata
-            video.title = u''
-            video.description = u''
-            video.author = u''
-            video.thumbnail = None
-            video.duration = NotAvailable
+            # If anything goes wrong, we prefer to return normally, this will
+            # allow video download to work even if we don't have the metadata
+            pass
